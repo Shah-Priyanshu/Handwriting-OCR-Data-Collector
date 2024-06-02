@@ -1,11 +1,15 @@
 import tkinter as tk
 from tkinter import messagebox
-from PIL import Image, ImageDraw, ImageChops
+from PIL import Image, ImageDraw, ImageOps
 import os
 
-# Create a directory to save the images
-if not os.path.exists('handwriting_samples'):
-    os.makedirs('handwriting_samples')
+# Directory to save the images
+SAVE_DIR = 'handwriting_samples'
+STATE_FILE = 'state.txt'
+
+# Create directory if it doesn't exist
+if not os.path.exists(SAVE_DIR):
+    os.makedirs(SAVE_DIR)
 
 class DataColletor:
     def __init__(self, root):
@@ -13,12 +17,13 @@ class DataColletor:
         self.root.title("Handwriting Data Collector")
         
         self.is_uppercase = tk.BooleanVar()
-        self.current_char = 'a'
+        self.inputted_chars = self.load_state()
+        self.current_char = self.get_next_char()
         self.grid_size = 6  # 6x6 grid
         self.cell_width = 100
         self.cell_height = 80
         
-        self.uppercase_toggle = tk.Checkbutton(root, text="Uppercase", variable=self.is_uppercase, command=self.update_case)
+        self.uppercase_toggle = tk.Checkbutton(root, text="Uppercase", variable=self.is_uppercase, command=self.toggle_case)
         self.uppercase_toggle.pack()
 
         self.label = tk.Label(root, text=f"Current Character: {self.current_char}")
@@ -36,7 +41,7 @@ class DataColletor:
         self.canvas_frame = tk.Frame(root)
         self.canvas_frame.pack()
 
-        self.canvas = tk.Canvas(self.canvas_frame, width=600, height=400, bg='white')
+        self.canvas = tk.Canvas(self.canvas_frame, width=600, height=480, bg='white')
         self.canvas.pack()
         
         self.label_instruction = tk.Label(root, text="WRITE SAMPLE")
@@ -53,15 +58,18 @@ class DataColletor:
         self.save_button = tk.Button(self.button_frame, text="Save", command=self.save_and_increment_character)
         self.save_button.pack(side=tk.LEFT)
 
+        # self.sanitize_button = tk.Button(self.button_frame, text="Sanitize", command=self.sanitize_images)
+        # self.sanitize_button.pack(side=tk.LEFT)
+
         self.canvas.bind("<B1-Motion>", self.paint)
 
-        self.image = Image.new("RGB", (600, 400), "white")
+        self.image = Image.new("RGB", (600, 480), "white")
         self.draw = ImageDraw.Draw(self.image)
 
     def draw_grid(self):
         for i in range(self.grid_size + 1):
             self.canvas.create_line(0, i*self.cell_height, 600, i*self.cell_height, fill='orange')
-            self.canvas.create_line(i*self.cell_width, 0, i*self.cell_width, 400, fill='orange')
+            self.canvas.create_line(i*self.cell_width, 0, i*self.cell_width, 480, fill='orange')
 
     def paint(self, event):
         x1, y1 = (event.x - 1), (event.y - 1)
@@ -72,11 +80,22 @@ class DataColletor:
     def clear_canvas(self):
         self.canvas.delete("all")
         self.draw_grid()
-        self.image = Image.new("RGB", (600, 400), "white")
+        self.image = Image.new("RGB", (600, 480), "white")
         self.draw = ImageDraw.Draw(self.image)
 
+    def is_cell_empty(self, cell_image):
+        # Convert the image to grayscale
+        gray_image = ImageOps.grayscale(cell_image)
+        # Get the histogram of the grayscale image
+        hist = gray_image.histogram()
+        # Calculate the number of white pixels (intensity 255)
+        white_pixels = hist[255]
+        # Calculate the total number of pixels
+        total_pixels = self.cell_width * self.cell_height
+        # Determine if the image is mostly white
+        return white_pixels / total_pixels > 0.99
+
     def save_image(self):
-        empty_cell = Image.new("RGB", (self.cell_width, self.cell_height), "white")
         for i in range(self.grid_size):
             for j in range(self.grid_size):
                 x0, y0 = j*self.cell_width, i*self.cell_height
@@ -84,8 +103,8 @@ class DataColletor:
                 cell_image = self.image.crop((x0, y0, x1, y1))
                 
                 # Check if the cell is not empty
-                if ImageChops.difference(cell_image, empty_cell).getbbox():
-                    save_path = f'handwriting_samples/{self.current_char}'
+                if not self.is_cell_empty(cell_image):
+                    save_path = f'{SAVE_DIR}/{self.current_char}'
                     if not os.path.exists(save_path):
                         os.makedirs(save_path)
                     
@@ -94,33 +113,68 @@ class DataColletor:
 
     def save_and_increment_character(self):
         self.save_image()
-        self.increment_character()
+        self.inputted_chars.add(self.current_char)
+        self.save_state()
+        self.current_char = self.get_next_char()
         self.clear_canvas()
         self.label.config(text=f"Current Character: {self.current_char}")
 
-    def increment_character(self):
-        if self.is_uppercase.get():
-            if self.current_char == 'Z':
-                self.current_char = 'A'
-            else:
-                self.current_char = chr(ord(self.current_char) + 1)
-        else:
-            if self.current_char == 'z':
-                self.current_char = 'a'
-            else:
-                self.current_char = chr(ord(self.current_char) + 1)
-    
-    def update_case(self):
-        self.current_char = 'A' if self.is_uppercase.get() else 'a'
+    def get_next_char(self):
+        for char in 'abcdefghijklmnopqrstuvwxyz':
+            if char not in self.inputted_chars:
+                return char
+        for char in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
+            if char not in self.inputted_chars:
+                return char
+        return 'a'
+
+    def toggle_case(self):
+        if not self.all_lowercase_inputted() and self.is_uppercase.get():
+            messagebox.showerror("Error", "Please input all lowercase letters first.")
+            self.is_uppercase.set(False)
+            return
+        self.current_char = self.get_next_char()
         self.label.config(text=f"Current Character: {self.current_char}")
+
+    def all_lowercase_inputted(self):
+        for char in 'abcdefghijklmnopqrstuvwxyz':
+            if char not in self.inputted_chars:
+                return False
+        return True
 
     def set_manual_character(self):
         manual_char = self.manual_input_entry.get()
         if manual_char and len(manual_char) == 1 and manual_char.isalpha():
+            if manual_char.isupper() and not self.all_lowercase_inputted():
+                messagebox.showerror("Error", "Please input all lowercase letters first.")
+                return
             self.current_char = manual_char
             self.label.config(text=f"Current Character: {self.current_char}")
+            self.inputted_chars.add(manual_char)
+            self.save_state()
         else:
             messagebox.showerror("Error", "Please enter a single alphabet character.")
+
+    def load_state(self):
+        if os.path.exists(STATE_FILE):
+            with open(STATE_FILE, 'r') as file:
+                return set(file.read().strip().split())
+        return set()
+
+    def save_state(self):
+        with open(STATE_FILE, 'w') as file:
+            file.write(' '.join(sorted(self.inputted_chars)))
+
+    def sanitize_images(self):
+        for root, dirs, files in os.walk(SAVE_DIR):
+            for file in files:
+                file_path = os.path.join(root, file)
+                image = Image.open(file_path)
+                if self.is_cell_empty(image):
+                    os.remove(file_path)
+                    print(f"Removed empty image: {file_path}")
+                else:
+                    print(f"Kept non-empty image: {file_path}")
 
 if __name__ == "__main__":
     root = tk.Tk()
