@@ -20,7 +20,7 @@ Handwriting OCR Data Collector is a Python application designed to collect and s
 
 1. Clone the repository:
     ```bash
-    https://github.com/Shah-Priyanshu/Handwriting-OCR-Data-Collector.git
+    git clone https://github.com/Shah-Priyanshu/Handwriting-OCR-Data-Collector.git
     cd Handwriting-OCR-Data-Collector
     ```
 
