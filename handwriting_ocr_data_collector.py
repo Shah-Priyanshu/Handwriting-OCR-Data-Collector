@@ -43,7 +43,7 @@ class DataColletor:
         self.clear_button = tk.Button(self.button_frame, text="Clear", command=self.clear_canvas)
         self.clear_button.pack(side=tk.LEFT)
 
-        self.save_button = tk.Button(self.button_frame, text="Save", command=self.save_image)
+        self.save_button = tk.Button(self.button_frame, text="Save", command=self.save_and_increment_character)
         self.save_button.pack(side=tk.LEFT)
 
         self.canvas.bind("<B1-Motion>", self.paint)
@@ -68,8 +68,6 @@ class DataColletor:
         self.image = Image.new("RGB", (600, 400), "white")
         self.draw = ImageDraw.Draw(self.image)
         self.cell_counter = 0
-        self.increment_character()
-        self.label.config(text=f"Current Character: {self.current_char}")
 
     def save_image(self):
         for i in range(self.grid_size):
@@ -84,8 +82,12 @@ class DataColletor:
                 
                 cell_count = len(os.listdir(save_path))
                 cell_image.save(f"{save_path}/{self.current_char}_{cell_count + 1}.png")
-        
+
+    def save_and_increment_character(self):
+        self.save_image()
+        self.increment_character()
         self.clear_canvas()
+        self.label.config(text=f"Current Character: {self.current_char}")
 
     def increment_character(self):
         if self.is_uppercase.get():
