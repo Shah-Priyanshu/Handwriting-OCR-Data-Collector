@@ -11,7 +11,7 @@ STATE_FILE = 'state.txt'
 if not os.path.exists(SAVE_DIR):
     os.makedirs(SAVE_DIR)
 
-class HandwritingApp:
+class DataCollector:
     def __init__(self, root):
         self.root = root
         self.root.title("Handwriting Data Collector")
@@ -202,5 +202,5 @@ class HandwritingApp:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = HandwritingApp(root)
+    app = DataCollector(root)
     root.mainloop()
