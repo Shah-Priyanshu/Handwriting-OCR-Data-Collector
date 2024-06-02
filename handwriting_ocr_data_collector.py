@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import simpledialog, messagebox
+from tkinter import messagebox
 from PIL import Image, ImageDraw
 import os
 
@@ -7,19 +7,20 @@ import os
 if not os.path.exists('handwriting_samples'):
     os.makedirs('handwriting_samples')
 
-class DataCollector:
+class DataColletor:
     def __init__(self, root):
         self.root = root
         self.root.title("Handwriting Data Collector")
         
-        self.char_var = tk.StringVar()
+        self.current_char = 'a'
+        self.cell_counter = 0
+        self.grid_size = 6  # 6x6 grid
+        self.cell_width = 100
+        self.cell_height = 80
         
-        self.label = tk.Label(root, text="ENTER THE CHAR:")
+        self.label = tk.Label(root, text=f"Current Character: {self.current_char}")
         self.label.pack()
-        
-        self.entry = tk.Entry(root, textvariable=self.char_var)
-        self.entry.pack()
-        
+
         self.canvas_frame = tk.Frame(root)
         self.canvas_frame.pack()
 
@@ -46,9 +47,9 @@ class DataCollector:
         self.draw = ImageDraw.Draw(self.image)
 
     def draw_grid(self):
-        for i in range(6):
-            self.canvas.create_line(0, i*80, 600, i*80, fill='orange')
-            self.canvas.create_line(i*100, 0, i*100, 400, fill='orange')
+        for i in range(self.grid_size + 1):
+            self.canvas.create_line(0, i*self.cell_height, 600, i*self.cell_height, fill='orange')
+            self.canvas.create_line(i*self.cell_width, 0, i*self.cell_width, 400, fill='orange')
 
     def paint(self, event):
         x1, y1 = (event.x - 1), (event.y - 1)
@@ -61,20 +62,27 @@ class DataCollector:
         self.draw_grid()
         self.image = Image.new("RGB", (600, 400), "white")
         self.draw = ImageDraw.Draw(self.image)
+        self.cell_counter = 0
+        self.current_char = chr(ord(self.current_char) + 1)
+        self.label.config(text=f"Current Character: {self.current_char}")
 
     def save_image(self):
-        letter = self.char_var.get()
-        if letter:
-            save_path = f'handwriting_samples/{letter}'
-            if not os.path.exists(save_path):
-                os.makedirs(save_path)
-            image_count = len(os.listdir(save_path))
-            self.image.save(f"{save_path}/{letter}_{image_count + 1}.png")
-            self.clear_canvas()
-        else:
-            messagebox.showerror("Error", "Please enter a character before saving.")
+        for i in range(self.grid_size):
+            for j in range(self.grid_size):
+                x0, y0 = j*self.cell_width, i*self.cell_height
+                x1, y1 = (j+1)*self.cell_width, (i+1)*self.cell_height
+                cell_image = self.image.crop((x0, y0, x1, y1))
+                
+                save_path = f'handwriting_samples/{self.current_char}'
+                if not os.path.exists(save_path):
+                    os.makedirs(save_path)
+                
+                cell_count = len(os.listdir(save_path))
+                cell_image.save(f"{save_path}/{self.current_char}_{cell_count + 1}.png")
+        
+        self.clear_canvas()
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = DataCollector(root)
+    app = DataColletor(root)
     root.mainloop()
