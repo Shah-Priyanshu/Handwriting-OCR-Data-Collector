@@ -11,12 +11,13 @@ STATE_FILE = 'state.txt'
 if not os.path.exists(SAVE_DIR):
     os.makedirs(SAVE_DIR)
 
-class DataColletor:
+class HandwritingApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Handwriting Data Collector")
         
         self.is_uppercase = tk.BooleanVar()
+        self.is_erasing = tk.BooleanVar()
         self.inputted_chars = self.load_state()
         self.current_char = self.get_next_char()
         self.grid_size = 6  # 6x6 grid
@@ -25,6 +26,9 @@ class DataColletor:
         
         self.uppercase_toggle = tk.Checkbutton(root, text="Uppercase", variable=self.is_uppercase, command=self.toggle_case)
         self.uppercase_toggle.pack()
+
+        self.eraser_toggle = tk.Checkbutton(root, text="Eraser", variable=self.is_erasing, command=self.toggle_eraser)
+        self.eraser_toggle.pack()
 
         self.label = tk.Label(root, text=f"Current Character: {self.current_char}")
         self.label.pack()
@@ -61,7 +65,7 @@ class DataColletor:
         # self.sanitize_button = tk.Button(self.button_frame, text="Sanitize", command=self.sanitize_images)
         # self.sanitize_button.pack(side=tk.LEFT)
 
-        self.canvas.bind("<B1-Motion>", self.paint)
+        self.canvas.bind("<B1-Motion>", self.paint_or_erase)
 
         self.image = Image.new("RGB", (600, 480), "white")
         self.draw = ImageDraw.Draw(self.image)
@@ -71,11 +75,25 @@ class DataColletor:
             self.canvas.create_line(0, i*self.cell_height, 600, i*self.cell_height, fill='orange')
             self.canvas.create_line(i*self.cell_width, 0, i*self.cell_width, 480, fill='orange')
 
+    def paint_or_erase(self, event):
+        if self.is_erasing.get():
+            self.erase(event)
+        else:
+            self.paint(event)
+
     def paint(self, event):
         x1, y1 = (event.x - 1), (event.y - 1)
         x2, y2 = (event.x + 1), (event.y + 1)
         self.canvas.create_oval(x1, y1, x2, y2, fill="purple", width=5)
         self.draw.line([x1, y1, x2, y2], fill="purple", width=5)
+
+    def erase(self, event):
+        col = event.x // self.cell_width
+        row = event.y // self.cell_height
+        x0, y0 = col * self.cell_width, row * self.cell_height
+        x1, y1 = (col + 1) * self.cell_width, (row + 1) * self.cell_height
+        self.canvas.create_rectangle(x0, y0, x1, y1, fill="white", outline="orange")
+        self.draw.rectangle([x0, y0, x1, y1], fill="white")
 
     def clear_canvas(self):
         self.canvas.delete("all")
@@ -136,6 +154,12 @@ class DataColletor:
         self.current_char = self.get_next_char()
         self.label.config(text=f"Current Character: {self.current_char}")
 
+    def toggle_eraser(self):
+        if self.is_erasing.get():
+            self.canvas.config(cursor="dotbox")
+        else:
+            self.canvas.config(cursor="pencil")
+
     def all_lowercase_inputted(self):
         for char in 'abcdefghijklmnopqrstuvwxyz':
             if char not in self.inputted_chars:
@@ -178,5 +202,5 @@ class DataColletor:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = DataColletor(root)
+    app = HandwritingApp(root)
     root.mainloop()
