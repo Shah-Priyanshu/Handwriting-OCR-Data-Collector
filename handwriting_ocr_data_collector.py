@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageDraw
 import os
+import string
 
 # Create a directory to save the images
 if not os.path.exists('handwriting_samples'):
@@ -12,12 +13,16 @@ class DataColletor:
         self.root = root
         self.root.title("Handwriting Data Collector")
         
+        self.is_uppercase = tk.BooleanVar()
         self.current_char = 'a'
         self.cell_counter = 0
         self.grid_size = 6  # 6x6 grid
         self.cell_width = 100
         self.cell_height = 80
         
+        self.uppercase_toggle = tk.Checkbutton(root, text="Uppercase", variable=self.is_uppercase, command=self.update_case)
+        self.uppercase_toggle.pack()
+
         self.label = tk.Label(root, text=f"Current Character: {self.current_char}")
         self.label.pack()
 
@@ -63,7 +68,7 @@ class DataColletor:
         self.image = Image.new("RGB", (600, 400), "white")
         self.draw = ImageDraw.Draw(self.image)
         self.cell_counter = 0
-        self.current_char = chr(ord(self.current_char) + 1)
+        self.increment_character()
         self.label.config(text=f"Current Character: {self.current_char}")
 
     def save_image(self):
@@ -81,6 +86,22 @@ class DataColletor:
                 cell_image.save(f"{save_path}/{self.current_char}_{cell_count + 1}.png")
         
         self.clear_canvas()
+
+    def increment_character(self):
+        if self.is_uppercase.get():
+            if self.current_char == 'Z':
+                self.current_char = 'A'
+            else:
+                self.current_char = chr(ord(self.current_char) + 1)
+        else:
+            if self.current_char == 'z':
+                self.current_char = 'a'
+            else:
+                self.current_char = chr(ord(self.current_char) + 1)
+    
+    def update_case(self):
+        self.current_char = 'A' if self.is_uppercase.get() else 'a'
+        self.label.config(text=f"Current Character: {self.current_char}")
 
 if __name__ == "__main__":
     root = tk.Tk()
