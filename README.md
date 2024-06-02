@@ -59,12 +59,3 @@ The application saves the state of inputted characters in a file (`state.txt`). 
 ### Sanitization
 
 The application includes a sanitization function that scans through the saved images and deletes blank or invalid images to ensure only valid samples are kept.
-
-## Contributing
-
-Contributions are welcome! Please fork this repository and submit a pull request for any improvements or bug fixes.
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
