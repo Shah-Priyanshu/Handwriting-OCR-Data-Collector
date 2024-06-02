@@ -1,8 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageChops
 import os
-import string
 
 # Create a directory to save the images
 if not os.path.exists('handwriting_samples'):
@@ -15,7 +14,6 @@ class DataColletor:
         
         self.is_uppercase = tk.BooleanVar()
         self.current_char = 'a'
-        self.cell_counter = 0
         self.grid_size = 6  # 6x6 grid
         self.cell_width = 100
         self.cell_height = 80
@@ -25,6 +23,15 @@ class DataColletor:
 
         self.label = tk.Label(root, text=f"Current Character: {self.current_char}")
         self.label.pack()
+
+        self.manual_input_label = tk.Label(root, text="Manual Input:")
+        self.manual_input_label.pack()
+
+        self.manual_input_entry = tk.Entry(root)
+        self.manual_input_entry.pack()
+
+        self.manual_input_button = tk.Button(root, text="Set Character", command=self.set_manual_character)
+        self.manual_input_button.pack()
 
         self.canvas_frame = tk.Frame(root)
         self.canvas_frame.pack()
@@ -67,21 +74,23 @@ class DataColletor:
         self.draw_grid()
         self.image = Image.new("RGB", (600, 400), "white")
         self.draw = ImageDraw.Draw(self.image)
-        self.cell_counter = 0
 
     def save_image(self):
+        empty_cell = Image.new("RGB", (self.cell_width, self.cell_height), "white")
         for i in range(self.grid_size):
             for j in range(self.grid_size):
                 x0, y0 = j*self.cell_width, i*self.cell_height
                 x1, y1 = (j+1)*self.cell_width, (i+1)*self.cell_height
                 cell_image = self.image.crop((x0, y0, x1, y1))
                 
-                save_path = f'handwriting_samples/{self.current_char}'
-                if not os.path.exists(save_path):
-                    os.makedirs(save_path)
-                
-                cell_count = len(os.listdir(save_path))
-                cell_image.save(f"{save_path}/{self.current_char}_{cell_count + 1}.png")
+                # Check if the cell is not empty
+                if ImageChops.difference(cell_image, empty_cell).getbbox():
+                    save_path = f'handwriting_samples/{self.current_char}'
+                    if not os.path.exists(save_path):
+                        os.makedirs(save_path)
+                    
+                    cell_count = len(os.listdir(save_path))
+                    cell_image.save(f"{save_path}/{self.current_char}_{cell_count + 1}.png")
 
     def save_and_increment_character(self):
         self.save_image()
@@ -104,6 +113,14 @@ class DataColletor:
     def update_case(self):
         self.current_char = 'A' if self.is_uppercase.get() else 'a'
         self.label.config(text=f"Current Character: {self.current_char}")
+
+    def set_manual_character(self):
+        manual_char = self.manual_input_entry.get()
+        if manual_char and len(manual_char) == 1 and manual_char.isalpha():
+            self.current_char = manual_char
+            self.label.config(text=f"Current Character: {self.current_char}")
+        else:
+            messagebox.showerror("Error", "Please enter a single alphabet character.")
 
 if __name__ == "__main__":
     root = tk.Tk()
