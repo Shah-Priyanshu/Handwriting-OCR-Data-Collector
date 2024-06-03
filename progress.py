@@ -5,7 +5,7 @@ import subprocess
 # Directory to save the images
 SAVE_DIR = 'handwriting_samples'
 
-class CombinedProgressData:
+class ProgressData:
     def __init__(self, root, back_callback):
         self.root = root
         self.back_callback = back_callback

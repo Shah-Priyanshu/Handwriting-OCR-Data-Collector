@@ -1,20 +1,16 @@
 # Handwriting OCR Data Collector
 
-Handwriting OCR Data Collector is a Python application designed to collect and sanitize handwritten character data for training OCR (Optical Character Recognition) models. This tool allows users to input handwritten characters using a touchscreen or stylus, save the data in a structured format, and ensure that only valid samples are kept.
+Handwriting OCR Data Collector is a Python application designed to collect and manage handwriting samples for OCR (Optical Character Recognition) training. This tool allows users to input handwritten characters, save them, and view their progress. It supports both uppercase and lowercase letters, storing them in separate directories.
 
 ## Features
 
-- **Grid-based Input**: Write multiple samples of characters in a grid layout.
-- **Uppercase and Lowercase Support**: Collect data for both uppercase and lowercase letters.
-- **Automatic and Manual Character Management**: Automatically prompts the next character or manually set the character to be inputted.
-- **State Persistence**: Remembers the last inputted characters and continues from where it left off.
-- **Sanitization**: Removes blank or invalid images from the dataset.
-
-## Requirements
-
-- Python 3.x
-- tkinter
-- Pillow (Python Imaging Library)
+- **Data Collection**: Input handwritten samples using a touchscreen or stylus.
+- **Auto-Increment Character**: Automatically moves to the next character after saving samples.
+- **Manual Character Input**: Manually select which character to input.
+- **Uppercase/Lowercase Toggle**: Toggle between uppercase and lowercase characters.
+- **Eraser Functionality**: Erase specific cells in the grid.
+- **Progress and Collected Data Viewer**: View the number of samples collected for each character and click on characters to open folders containing collected samples.
+- **Sanitization**: Remove empty images from the saved samples.
 
 ## Installation
 
@@ -24,38 +20,46 @@ Handwriting OCR Data Collector is a Python application designed to collect and s
     cd Handwriting-OCR-Data-Collector
     ```
 
-2. Install the required packages:
+2. Install the required dependencies:
     ```bash
-    pip install pillow
+    pip install -r requirements.txt
+    ```
+
+3. Run the application:
+    ```bash
+    python main.py
     ```
 
 ## Usage
 
-1. Run the application:
-    ```bash
-    python handwriting_ocr_data_collector.py
-    ```
+### Data Collection
 
-2. Use the application to input handwritten characters:
-    - Write characters in the grid.
-    - Use the **Save** button to save the samples.
-    - Use the **Clear** button to clear the grid.
-    - Use the **Sanitize** button to remove blank images.
+1. Launch the application and select "Data Collector".
+2. Use the canvas to write the character. The grid will help you align your writing.
+3. Use the "Clear" button to clear the canvas.
+4. Use the "Save" button to save the current samples and move to the next character.
+5. Toggle between uppercase and lowercase using the checkbox.
+6. Use the "Eraser" checkbox to enable erasing mode. Click on the cell you want to erase.
+7. Manually select a character by entering it in the input field and clicking "Set Character".
 
-3. The application will automatically prompt the next character to be inputted. You can also manually set the character using the **Manual Input** section.
+### Progress and Collected Data
 
-4. Ensure all lowercase letters are inputted before moving to uppercase letters.
-
-## How It Works
-
-### Grid-based Input
-
-The application displays a grid where users can write multiple samples of a character. The samples are saved as individual image files in a structured directory format.
-
-### State Persistence
-
-The application saves the state of inputted characters in a file (`state.txt`). When restarted, it loads this state and continues from where it left off.
+1. Select "Progress and Collected Data" from the main menu.
+2. View your progress for each character. The grid shows the number of samples collected, color-coded:
+    - Red: Less than 18 samples
+    - Yellow: 18 to 35 samples
+    - Green: 36 or more samples
+3. Click on a character to open the folder containing the collected samples for that character. If no data is found, a message will be displayed.
 
 ### Sanitization
 
-The application includes a sanitization function that scans through the saved images and deletes blank or invalid images to ensure only valid samples are kept.
+1. Use the "Sanitize" button in the Data Collector interface to remove empty images from the saved samples (currently commented out in your code).
+
+## File Structure
+
+- `main.py`: Main application entry point.
+- `data_collector.py`: Handles the data collection interface and functionality.
+- `progress.py`: Combines progress tracking and collected data viewing.
+- `handwriting_samples/`: Directory where handwriting samples are stored.
+  - `lowercase/`: Contains folders for each lowercase character.
+  - `uppercase/`: Contains folders for each uppercase character.

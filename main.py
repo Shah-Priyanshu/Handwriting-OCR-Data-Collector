@@ -1,6 +1,6 @@
 import tkinter as tk
 from data_collector import DataCollector
-from combined_progress_data import CombinedProgressData
+from progress import ProgressData
 
 class MainApplication:
     def __init__(self, root):
