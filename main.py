@@ -1,7 +1,6 @@
 import tkinter as tk
 from data_collector import DataCollector
-from progress import Progress
-from collected_data import CollectedData
+from combined_progress_data import CombinedProgressData
 
 class MainApplication:
     def __init__(self, root):
@@ -19,11 +18,8 @@ class MainApplication:
         self.data_collector_button = tk.Button(self.root, text="Data Collector", command=self.open_data_collector)
         self.data_collector_button.pack(pady=10)
 
-        self.progress_button = tk.Button(self.root, text="Progress", command=self.open_progress)
-        self.progress_button.pack(pady=10)
-
-        self.collected_data_button = tk.Button(self.root, text="Collected Data", command=self.open_collected_data)
-        self.collected_data_button.pack(pady=10)
+        self.progress_data_button = tk.Button(self.root, text="Progress and Collected Data", command=self.open_progress_data)
+        self.progress_data_button.pack(pady=10)
 
     def clear_window(self):
         for widget in self.root.winfo_children():
@@ -33,13 +29,9 @@ class MainApplication:
         self.clear_window()
         DataCollector(self.root, self.back_to_main_menu)
 
-    def open_progress(self):
+    def open_progress_data(self):
         self.clear_window()
-        Progress(self.root, self.back_to_main_menu)
-
-    def open_collected_data(self):
-        self.clear_window()
-        CollectedData(self.root, self.back_to_main_menu)
+        CombinedProgressData(self.root, self.back_to_main_menu)
 
     def back_to_main_menu(self):
         self.main_menu()
