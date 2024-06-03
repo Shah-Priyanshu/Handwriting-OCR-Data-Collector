@@ -31,7 +31,7 @@ class MainApplication:
 
     def open_progress_data(self):
         self.clear_window()
-        CombinedProgressData(self.root, self.back_to_main_menu)
+        ProgressData(self.root, self.back_to_main_menu)
 
     def back_to_main_menu(self):
         self.main_menu()
