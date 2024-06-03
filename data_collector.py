@@ -12,48 +12,58 @@ if not os.path.exists(SAVE_DIR):
     os.makedirs(SAVE_DIR)
 
 class DataCollector:
-    def __init__(self, root):
+    def __init__(self, root, back_callback):
         self.root = root
-        self.root.title("Handwriting Data Collector")
+        self.back_callback = back_callback
+
+        self.grid_size = 6  # 6x6 grid
+        self.cell_width = 100
+        self.cell_height = 80
         
         self.is_uppercase = tk.BooleanVar()
         self.is_erasing = tk.BooleanVar()
         self.inputted_chars = self.load_state()
         self.current_char = self.get_next_char()
-        self.grid_size = 6  # 6x6 grid
-        self.cell_width = 100
-        self.cell_height = 80
         
-        self.uppercase_toggle = tk.Checkbutton(root, text="Uppercase", variable=self.is_uppercase, command=self.toggle_case)
+        self.setup_ui()
+        
+        self.image = Image.new("RGB", (600, 480), "white")
+        self.draw = ImageDraw.Draw(self.image)
+
+    def setup_ui(self):
+        self.title = tk.Label(self.root, text="Data Collector", font=("Helvetica", 16))
+        self.title.pack(pady=20)
+
+        self.uppercase_toggle = tk.Checkbutton(self.root, text="Case Toggle", variable=self.is_uppercase, command=self.toggle_case)
         self.uppercase_toggle.pack()
 
-        self.eraser_toggle = tk.Checkbutton(root, text="Eraser", variable=self.is_erasing, command=self.toggle_eraser)
+        self.eraser_toggle = tk.Checkbutton(self.root, text="Eraser", variable=self.is_erasing, command=self.toggle_eraser)
         self.eraser_toggle.pack()
 
-        self.label = tk.Label(root, text=f"Current Character: {self.current_char}")
+        self.label = tk.Label(self.root, text=f"Current Character: {self.current_char}")
         self.label.pack()
 
-        self.manual_input_label = tk.Label(root, text="Manual Input:")
+        self.manual_input_label = tk.Label(self.root, text="Manual Input:")
         self.manual_input_label.pack()
 
-        self.manual_input_entry = tk.Entry(root)
+        self.manual_input_entry = tk.Entry(self.root)
         self.manual_input_entry.pack()
 
-        self.manual_input_button = tk.Button(root, text="Set Character", command=self.set_manual_character)
+        self.manual_input_button = tk.Button(self.root, text="Set Character", command=self.set_manual_character)
         self.manual_input_button.pack()
 
-        self.canvas_frame = tk.Frame(root)
+        self.canvas_frame = tk.Frame(self.root)
         self.canvas_frame.pack()
 
         self.canvas = tk.Canvas(self.canvas_frame, width=600, height=480, bg='white')
         self.canvas.pack()
         
-        self.label_instruction = tk.Label(root, text="WRITE SAMPLE")
+        self.label_instruction = tk.Label(self.root, text="WRITE SAMPLES")
         self.label_instruction.pack()
 
         self.draw_grid()
 
-        self.button_frame = tk.Frame(root)
+        self.button_frame = tk.Frame(self.root)
         self.button_frame.pack()
 
         self.clear_button = tk.Button(self.button_frame, text="Clear", command=self.clear_canvas)
@@ -65,10 +75,10 @@ class DataCollector:
         # self.sanitize_button = tk.Button(self.button_frame, text="Sanitize", command=self.sanitize_images)
         # self.sanitize_button.pack(side=tk.LEFT)
 
-        self.canvas.bind("<B1-Motion>", self.paint_or_erase)
+        self.back_button = tk.Button(self.button_frame, text="Back", command=self.back_callback)
+        self.back_button.pack(side=tk.LEFT)
 
-        self.image = Image.new("RGB", (600, 480), "white")
-        self.draw = ImageDraw.Draw(self.image)
+        self.canvas.bind("<B1-Motion>", self.paint_or_erase)
 
     def draw_grid(self):
         for i in range(self.grid_size + 1):
@@ -122,7 +132,8 @@ class DataCollector:
                 
                 # Check if the cell is not empty
                 if not self.is_cell_empty(cell_image):
-                    save_path = f'{SAVE_DIR}/{self.current_char}'
+                    folder_name = "uppercase" if self.current_char.isupper() else "lowercase"
+                    save_path = os.path.join(SAVE_DIR, folder_name, self.current_char)
                     if not os.path.exists(save_path):
                         os.makedirs(save_path)
                     
@@ -134,6 +145,7 @@ class DataCollector:
         self.inputted_chars.add(self.current_char)
         self.save_state()
         self.current_char = self.get_next_char()
+        self.is_uppercase.set(False)  # Untick the Uppercase checkbox
         self.clear_canvas()
         self.label.config(text=f"Current Character: {self.current_char}")
 
@@ -147,11 +159,10 @@ class DataCollector:
         return 'a'
 
     def toggle_case(self):
-        if not self.all_lowercase_inputted() and self.is_uppercase.get():
-            messagebox.showerror("Error", "Please input all lowercase letters first.")
-            self.is_uppercase.set(False)
-            return
-        self.current_char = self.get_next_char()
+        if self.current_char.islower():
+            self.current_char = self.current_char.upper()
+        else:
+            self.current_char = self.current_char.lower()
         self.label.config(text=f"Current Character: {self.current_char}")
 
     def toggle_eraser(self):
@@ -160,18 +171,9 @@ class DataCollector:
         else:
             self.canvas.config(cursor="pencil")
 
-    def all_lowercase_inputted(self):
-        for char in 'abcdefghijklmnopqrstuvwxyz':
-            if char not in self.inputted_chars:
-                return False
-        return True
-
     def set_manual_character(self):
         manual_char = self.manual_input_entry.get()
         if manual_char and len(manual_char) == 1 and manual_char.isalpha():
-            if manual_char.isupper() and not self.all_lowercase_inputted():
-                messagebox.showerror("Error", "Please input all lowercase letters first.")
-                return
             self.current_char = manual_char
             self.label.config(text=f"Current Character: {self.current_char}")
             self.inputted_chars.add(manual_char)
@@ -199,8 +201,3 @@ class DataCollector:
                     print(f"Removed empty image: {file_path}")
                 else:
                     print(f"Kept non-empty image: {file_path}")
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = DataCollector(root)
-    root.mainloop()
