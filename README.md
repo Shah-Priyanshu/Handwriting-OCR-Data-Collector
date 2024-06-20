@@ -61,5 +61,7 @@ Handwriting OCR Data Collector is a Python application designed to collect and m
 - `data_collector.py`: Handles the data collection interface and functionality.
 - `progress.py`: Combines progress tracking and collected data viewing.
 - `handwriting_samples/`: Directory where handwriting samples are stored.
-  - `lowercase/`: Contains folders for each lowercase character.
-  - `uppercase/`: Contains folders for each uppercase character.
+  - `single_lowercase/`: Contains folders for each lowercase character.
+  - `single_uppercase/`: Contains folders for each uppercase character.
+  - `bi_lowercase/` : Contains folders for each combination of (lowercase_lowercase) characters. 
+  - `bi_mixedcase/` : Contains folders for each combination of (uppercase_lowercase) characters. 
