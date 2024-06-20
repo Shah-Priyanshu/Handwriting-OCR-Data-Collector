@@ -7,9 +7,12 @@ import os
 SAVE_DIR = 'handwriting_samples'
 STATE_FILE = 'state.txt'
 
-# Create directory if it doesn't exist
-if not os.path.exists(SAVE_DIR):
-    os.makedirs(SAVE_DIR)
+# Create directories if they don't exist
+folders = ['single_lowercase', 'single_uppercase', 'bi_lowercase', 'bi_mixedcase']
+for folder in folders:
+    folder_path = os.path.join(SAVE_DIR, folder)
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
 
 class DataCollector:
     def __init__(self, root, back_callback):
@@ -20,10 +23,10 @@ class DataCollector:
         self.cell_width = 100
         self.cell_height = 80
         
-        self.is_uppercase = tk.BooleanVar()
         self.is_erasing = tk.BooleanVar()
         self.inputted_chars = self.load_state()
         self.current_char = self.get_next_char()
+        self.pen_size = 5
         
         self.setup_ui()
         
@@ -33,9 +36,6 @@ class DataCollector:
     def setup_ui(self):
         self.title = tk.Label(self.root, text="Data Collector", font=("Helvetica", 16))
         self.title.pack(pady=20)
-
-        self.uppercase_toggle = tk.Checkbutton(self.root, text="Case Toggle", variable=self.is_uppercase, command=self.toggle_case)
-        self.uppercase_toggle.pack()
 
         self.eraser_toggle = tk.Checkbutton(self.root, text="Eraser", variable=self.is_erasing, command=self.toggle_eraser)
         self.eraser_toggle.pack()
@@ -56,7 +56,7 @@ class DataCollector:
         self.canvas_frame.pack()
 
         self.canvas = tk.Canvas(self.canvas_frame, width=600, height=480, bg='white')
-        self.canvas.pack()
+        self.canvas.pack(side=tk.LEFT)
         
         self.label_instruction = tk.Label(self.root, text="WRITE SAMPLES")
         self.label_instruction.pack()
@@ -72,9 +72,6 @@ class DataCollector:
         self.save_button = tk.Button(self.button_frame, text="Save", command=self.save_and_increment_character)
         self.save_button.pack(side=tk.LEFT)
 
-        # self.sanitize_button = tk.Button(self.button_frame, text="Sanitize", command=self.sanitize_images)
-        # self.sanitize_button.pack(side=tk.LEFT)
-
         self.back_button = tk.Button(self.button_frame, text="Back", command=self.back_callback)
         self.back_button.pack(side=tk.LEFT)
 
@@ -86,6 +83,7 @@ class DataCollector:
             self.canvas.create_line(i*self.cell_width, 0, i*self.cell_width, 480, fill='orange')
 
     def paint_or_erase(self, event):
+        self.update_pen_size(event.y)
         if self.is_erasing.get():
             self.erase(event)
         else:
@@ -94,8 +92,8 @@ class DataCollector:
     def paint(self, event):
         x1, y1 = (event.x - 1), (event.y - 1)
         x2, y2 = (event.x + 1), (event.y + 1)
-        self.canvas.create_oval(x1, y1, x2, y2, fill="purple", width=5)
-        self.draw.line([x1, y1, x2, y2], fill="purple", width=5)
+        self.canvas.create_oval(x1, y1, x2, y2, fill="purple", width=self.pen_size)
+        self.draw.line([x1, y1, x2, y2], fill="purple", width=self.pen_size)
 
     def erase(self, event):
         col = event.x // self.cell_width
@@ -112,16 +110,12 @@ class DataCollector:
         self.draw = ImageDraw.Draw(self.image)
 
     def is_cell_empty(self, cell_image):
-        # Convert the image to grayscale
         gray_image = ImageOps.grayscale(cell_image)
-        # Get the histogram of the grayscale image
-        hist = gray_image.histogram()
-        # Calculate the number of white pixels (intensity 255)
-        white_pixels = hist[255]
-        # Calculate the total number of pixels
-        total_pixels = self.cell_width * self.cell_height
-        # Determine if the image is mostly white
-        return white_pixels / total_pixels > 0.99
+        pixel_data = list(gray_image.getdata())
+        total_pixels = cell_image.width * cell_image.height
+        sum_pixel_values = sum(pixel_data)
+        sum_white_pixels = 255 * total_pixels
+        return sum_pixel_values == sum_white_pixels
 
     def save_image(self):
         for i in range(self.grid_size):
@@ -130,9 +124,8 @@ class DataCollector:
                 x1, y1 = (j+1)*self.cell_width, (i+1)*self.cell_height
                 cell_image = self.image.crop((x0, y0, x1, y1))
                 
-                # Check if the cell is not empty
                 if not self.is_cell_empty(cell_image):
-                    folder_name = "uppercase" if self.current_char.isupper() else "lowercase"
+                    folder_name = self.get_folder_name()
                     save_path = os.path.join(SAVE_DIR, folder_name, self.current_char)
                     if not os.path.exists(save_path):
                         os.makedirs(save_path)
@@ -140,30 +133,47 @@ class DataCollector:
                     cell_count = len(os.listdir(save_path))
                     cell_image.save(f"{save_path}/{self.current_char}_{cell_count + 1}.png")
 
+    def get_folder_name(self):
+        if len(self.current_char) == 1:
+            if self.current_char.islower():
+                return 'single_lowercase'
+            elif self.current_char.isupper():
+                return 'single_uppercase'
+        elif len(self.current_char) == 2:
+            if self.current_char.islower():
+                return 'bi_lowercase'
+            elif self.current_char[0].isupper() and self.current_char[1].islower():
+                return 'bi_mixedcase'
+        return 'unknown'
+
     def save_and_increment_character(self):
         self.save_image()
         self.inputted_chars.add(self.current_char)
         self.save_state()
         self.current_char = self.get_next_char()
-        self.is_uppercase.set(False)  # Untick the Uppercase checkbox
         self.clear_canvas()
         self.label.config(text=f"Current Character: {self.current_char}")
 
     def get_next_char(self):
-        for char in 'abcdefghijklmnopqrstuvwxyz':
+        alphabet_lower = 'abcdefghijklmnopqrstuvwxyz'
+        alphabet_upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+        for char in alphabet_lower:
             if char not in self.inputted_chars:
                 return char
-        for char in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
+        for char in alphabet_upper:
             if char not in self.inputted_chars:
                 return char
+        for char1 in alphabet_lower:
+            for char2 in alphabet_lower:
+                bi_char = char1 + char2
+                if bi_char not in self.inputted_chars:
+                    return bi_char
+        for char1 in alphabet_upper:
+            for char2 in alphabet_lower:
+                bi_char = char1 + char2
+                if bi_char not in self.inputted_chars:
+                    return bi_char
         return 'a'
-
-    def toggle_case(self):
-        if self.current_char.islower():
-            self.current_char = self.current_char.upper()
-        else:
-            self.current_char = self.current_char.lower()
-        self.label.config(text=f"Current Character: {self.current_char}")
 
     def toggle_eraser(self):
         if self.is_erasing.get():
@@ -178,8 +188,17 @@ class DataCollector:
             self.label.config(text=f"Current Character: {self.current_char}")
             self.inputted_chars.add(manual_char)
             self.save_state()
+        elif manual_char and len(manual_char) == 2 and ((manual_char[0].islower() and manual_char[1].islower()) or (manual_char[0].isupper() and manual_char[1].islower())):
+            self.current_char = manual_char
+            self.label.config(text=f"Current Character: {self.current_char}")
+            self.inputted_chars.add(manual_char)
+            self.save_state()
         else:
-            messagebox.showerror("Error", "Please enter a single alphabet character.")
+            messagebox.showerror("Error", "Please enter a valid character (single or bi-character).")
+
+    def update_pen_size(self, y):
+        row = y // self.cell_height
+        self.pen_size = max(1, row)
 
     def load_state(self):
         if os.path.exists(STATE_FILE):
